@@ -19,7 +19,7 @@ const account = new sdk.Account(client)
 const app = express();
 app.use(cors());
 
-const port = 3000;
+const port = process.env.PORT || 3000;
 const MODEL_PATH = path.join(__dirname, "model");
 const UPLOAD_DIR = path.join(__dirname, "uploads");
 
