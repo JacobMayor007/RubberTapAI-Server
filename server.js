@@ -19,7 +19,7 @@ const account = new sdk.Account(client)
 const app = express();
 app.use(cors());
 
-const port = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000;
 const MODEL_PATH = path.join(__dirname, "model");
 const UPLOAD_DIR = path.join(__dirname, "uploads");
 
@@ -188,6 +188,6 @@ app.get("/predict", (req, res) => {
   res.send("✅ Server is running and listening on port 3000");
 });
 
-app.listen(port, () => {
-  console.log(`🚀 Server running at http://localhost:${port}`);
+app.listen(PORT, () => {
+  console.log(`🚀 Server running at http://localhost:${PORT}`);
 });
