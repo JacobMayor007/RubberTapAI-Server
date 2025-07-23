@@ -19,7 +19,7 @@ const account = new sdk.Account(client)
 const app = express();
 app.use(cors());
 
-const PORT = process.env.PORT || 10000;
+const PORT = process.env.PORT || 8080;
 const MODEL_PATH = path.join(__dirname, "model");
 const UPLOAD_DIR = path.join(__dirname, "uploads");
 
@@ -185,7 +185,7 @@ app.get("/verification", async (req, res) => {
 
 
 app.get("/predict", (req, res) => {
-  res.send("✅ Server is running and listening on port 3000");
+  res.send(`✅ Server is running and listening on port ${PORT}`);
 });
 
 app.listen(PORT, () => {
