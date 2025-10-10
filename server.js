@@ -1,4 +1,4 @@
-require('dotenv').config()
+require("dotenv").config();
 const express = require("express");
 const multer = require("multer");
 const tf = require("@tensorflow/tfjs-node");
@@ -19,9 +19,10 @@ if (!fs.existsSync(UPLOAD_DIR)) {
 }
 
 // Multer setup for image uploads
+// Multer setup for image uploads
 const upload = multer({
   dest: UPLOAD_DIR,
-  limits: { fileSize: 5 * 1024 * 1024 }, 
+  limits: { fileSize: 20 * 1024 * 1024 }, // ⬅️ increased to 20MB
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith("image/")) {
       cb(null, true);
@@ -48,7 +49,9 @@ let model;
 // Predict endpoint
 app.post("/predict", upload.single("image"), async (req, res) => {
   if (!model) {
-    return res.status(503).json({ error: "Model not loaded yet. Please try again later." });
+    return res
+      .status(503)
+      .json({ error: "Model not loaded yet. Please try again later." });
   }
 
   if (!req.file) {
@@ -58,11 +61,14 @@ app.post("/predict", upload.single("image"), async (req, res) => {
   const imagePath = req.file.path;
 
   try {
-    console.log(`📸 Processing image: ${req.file.originalname || req.file.filename}`);
+    console.log(
+      `📸 Processing image: ${req.file.originalname || req.file.filename}`
+    );
 
     const buffer = fs.readFileSync(imagePath);
 
-    const tensor = tf.node.decodeImage(buffer, 3)
+    const tensor = tf.node
+      .decodeImage(buffer, 3)
       .resizeNearestNeighbor([224, 224])
       .div(255.0)
       .expandDims();
@@ -81,7 +87,9 @@ app.post("/predict", upload.single("image"), async (req, res) => {
 
     const classNames = ["Oidium Heveae", "Healthy", "Anthracnose", "Leaf Spot"];
     if (probabilities.length !== classNames.length) {
-      throw new Error(`Expected ${classNames.length} output classes but got ${probabilities.length}`);
+      throw new Error(
+        `Expected ${classNames.length} output classes but got ${probabilities.length}`
+      );
     }
 
     const predictions = probabilities.map((prob, index) => ({
