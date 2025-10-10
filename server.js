@@ -5,16 +5,6 @@ const tf = require("@tensorflow/tfjs-node");
 const fs = require("fs");
 const path = require("path");
 const cors = require("cors");
-const sdk = require("node-appwrite");
-const client = new sdk.Client();
-
-
-client
-    .setEndpoint(process.env.EXPO_PUBLIC_APPWRITE_ENDPOINT)
-    .setProject(process.env.EXPO_PUBLIC_APPWRITE_PROJECT_ID)
-    .setKey(process.env.EXPO_PUBLIC_APPWRITE_API_KEY);
-
-const account = new sdk.Account(client)
 
 const app = express();
 app.use(cors());
@@ -147,42 +137,6 @@ app.post("/predict", upload.single("image"), async (req, res) => {
     });
   }
 });
-
-app.get("/verification", async (req, res) => {
-  try {
-    const { userId, secret, expire } = req.query;
-    
-    // Validate required parameters
-    if (!userId || !secret) {
-      return res.status(400).json({
-        success: false,
-        message: "Missing required parameters"
-      });
-    }
-
-    if (expire && new Date(expire) < new Date()) {
-      return res.status(400).json({
-        success: false,
-        message: "Verification link has expired"
-      });
-    }
-
-    const result = await account.updateVerification(userId, secret);
-    
-    res.status(200).json({
-      success: true,
-      data: result
-    });
-
-  } catch (error) {
-    console.error("Verification error:", error);
-    res.status(400).json({
-      success: false,
-      message: error.message || "Verification failed"
-    });
-  }
-});
-
 
 app.get("/predict", (req, res) => {
   res.send(`✅ Server is running and listening on port ${PORT}`);
