@@ -9,20 +9,17 @@ const cors = require("cors");
 const app = express();
 app.use(cors());
 
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT;
 const MODEL_PATH = path.join(__dirname, "model");
 const UPLOAD_DIR = path.join(__dirname, "uploads");
 
-// Ensure upload directory exists
 if (!fs.existsSync(UPLOAD_DIR)) {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 }
 
-// Multer setup for image uploads
-// Multer setup for image uploads
 const upload = multer({
   dest: UPLOAD_DIR,
-  limits: { fileSize: 20 * 1024 * 1024 }, // ⬅️ increased to 20MB
+  limits: { fileSize: 20 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith("image/")) {
       cb(null, true);
@@ -34,7 +31,6 @@ const upload = multer({
 
 let model;
 
-// Load the model at startup
 (async () => {
   try {
     model = await tf.loadLayersModel(`file://${MODEL_PATH}/model.json`);
@@ -67,32 +63,38 @@ app.post("/predict", upload.single("image"), async (req, res) => {
 
     const buffer = fs.readFileSync(imagePath);
 
-    const tensor = tf.node
-      .decodeImage(buffer, 3)
-      .resizeNearestNeighbor([224, 224])
-      .div(255.0)
-      .expandDims();
+    const probabilities = await tf.tidy(() => {
+      const tensor = tf.node
+        .decodeImage(buffer, 3)
+        .resizeNearestNeighbor([224, 224])
+        .div(255.0)
+        .expandDims();
 
-    console.log("📐 Tensor shape:", tensor.shape);
+      console.log("📐 Tensor shape:", tensor.shape);
 
-    let prediction;
-    try {
-      prediction = model.predict(tensor);
-    } catch (err) {
-      throw new Error("Model prediction failed: " + err.message);
-    }
+      let prediction;
+      try {
+        prediction = model.predict(tensor);
+      } catch (err) {
+        throw new Error("Model prediction failed: " + err.message);
+      }
 
-    const probabilities = (await prediction.array())[0];
-    console.log("📊 Raw probabilities:", probabilities);
+      // Return the data from tidy so it can be used outside
+      return prediction.dataSync();
+    });
+
+    // Convert to array for processing
+    const probabilitiesArray = Array.from(probabilities);
+    console.log("📊 Raw probabilities:", probabilitiesArray);
 
     const classNames = ["Oidium Heveae", "Healthy", "Anthracnose", "Leaf Spot"];
-    if (probabilities.length !== classNames.length) {
+    if (probabilitiesArray.length !== classNames.length) {
       throw new Error(
-        `Expected ${classNames.length} output classes but got ${probabilities.length}`
+        `Expected ${classNames.length} output classes but got ${probabilitiesArray.length}`
       );
     }
 
-    const predictions = probabilities.map((prob, index) => ({
+    const predictions = probabilitiesArray.map((prob, index) => ({
       className: classNames[index],
       probability: prob,
     }));
@@ -119,7 +121,6 @@ app.post("/predict", upload.single("image"), async (req, res) => {
 
     console.log("✅ Top prediction:", topPrediction);
 
-    // Delete uploaded image
     try {
       await fs.promises.unlink(imagePath);
     } catch (err) {
@@ -130,7 +131,6 @@ app.post("/predict", upload.single("image"), async (req, res) => {
   } catch (err) {
     console.error("❌ Prediction error:", err.message);
 
-    // Cleanup on failure
     if (fs.existsSync(imagePath)) {
       try {
         await fs.promises.unlink(imagePath);
